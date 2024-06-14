@@ -34,6 +34,8 @@ int main()
     cart.rpy.rz = toRadians(0);
     linear_move(cart, ipaddr, ABS, FALSE, 200, 10, 1, NULL);
 
+    printDigitalOutputStatus(ipaddr, 0, 1);
+    useDigitalOutput(ipaddr, 0);
 
     return 0;
 }

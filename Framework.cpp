@@ -191,7 +191,7 @@ void printDigitalOutputStatus(const char* ipaddr, int digitalOutputIndex1, int d
 	robotController.login_out();
 }
 
-void useDigitalOutputs(const char* ipaddr, int outputIndex1, int outputIndex2) {
+void useDigitalOutput(const char* ipaddr, int outputIndex) {
 	errno_t err;
 
 	JAKAZuRobot robotController;
@@ -202,32 +202,15 @@ void useDigitalOutputs(const char* ipaddr, int outputIndex1, int outputIndex2) {
 
 	robotController.enable_robot();
 
-	// Turn on DO_1
-	err = robotController.set_digital_output(IO_TOOL, outputIndex1, TRUE);
-	std::cout << "Error code for setting digital output 1: " << err << std::endl;
+	// Turn on DO
+	err = robotController.set_digital_output(IO_TOOL, outputIndex, TRUE);
+	std::cout << "Error code for setting digital output 0: " << err << std::endl;
 
 	// Wait for 2 seconds
 	std::this_thread::sleep_for(std::chrono::seconds(2));
 
-	// Turn off DO_1 before using DO_2
-	err = robotController.set_digital_output(IO_TOOL, outputIndex1, FALSE);
-	std::cout << "Error code for setting digital output 1: " << err << std::endl;
-
-	// Wait for 2 seconds
-	std::this_thread::sleep_for(std::chrono::seconds(2));
-
-	// Turn on DO_2
-	err = robotController.set_digital_output(IO_TOOL, outputIndex2, TRUE);
-	std::cout << "Error code for setting digital output 2: " << err << std::endl;
-
-	// Wait for 2 seconds
-	std::this_thread::sleep_for(std::chrono::seconds(2));
-
-	printDigitalOutputStatus(ipaddr, outputIndex1, outputIndex2); // Corrected here
-
-	// Turn off DO_2 before using DO_1
-	err = robotController.set_digital_output(IO_TOOL, outputIndex2, FALSE);
-	std::cout << "Error code for setting digital output 2: " << err << std::endl;
+	// Turn off DO
+	err = robotController.set_digital_output(IO_TOOL, outputIndex, FALSE);
 
 	robotController.login_out();
 }

@@ -33,4 +33,4 @@ void printDigitalOutputStatus(
 	int digitalOutputIndex2
 );
 
-void useDigitalOutputs(const char* ipaddr, int outputIndex1, int outputIndex2);
+void useDigitalOutput(const char* ipaddr, int outputIndex);
