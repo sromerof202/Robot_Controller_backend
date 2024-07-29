@@ -1,14 +1,93 @@
 #include <iostream>
+#include <vector>
 #include <JAKAZuRobot.h>
 #include <windows.h>
 #include <thread>
 #include <chrono>
+
 constexpr double PI = 3.1415926;
 using namespace std;
 
-// convert degrees to radians
+struct RobotSession {
+	JointValue joint_position;
+	BOOL digital_output1;
+	BOOL digital_output2;
+};
+
+vector<RobotSession> sessionStorage;
+
 double toRadians(double degrees) {
-    return degrees * PI / 180.0;
+	return degrees * PI / 180.0;
+}
+
+errno_t login_in(const char* ipaddr)
+{
+	JAKAZuRobot robotController;
+	errno_t ret = robotController.login_in(ipaddr);
+	return ret;
+}
+
+errno_t login_out()
+{
+	JAKAZuRobot robotController;
+	errno_t ret = robotController.login_out();
+	return ret;
+}
+
+errno_t power_on()
+{
+	JAKAZuRobot robotController;
+	errno_t ret = robotController.power_on();
+	return ret;
+}
+
+errno_t power_off()
+{
+	JAKAZuRobot robotController;
+	errno_t ret = robotController.power_off();
+	return ret;
+}
+
+errno_t enable_robot()
+{
+	JAKAZuRobot robotController;
+	errno_t ret = robotController.enable_robot();
+	return ret;
+}
+
+errno_t disable_robot(const char* ipaddr)
+{
+	JAKAZuRobot robotController;
+	errno_t ret;
+
+	ret = robotController.login_in(ipaddr);
+	if (ret != ERR_SUCC) {
+		std::cout << "Login failed with error: " << ret << std::endl;
+		return ret;
+	}
+
+	ret = robotController.power_on();
+	if (ret != ERR_SUCC) {
+		std::cout << "Power on failed with error: " << ret << std::endl;
+		robotController.login_out(); // Log out before returning
+		return ret;
+	}
+
+	ret = robotController.enable_robot();
+	if (ret != ERR_SUCC) {
+		std::cout << "Enable robot failed with error: " << ret << std::endl;
+		robotController.login_out(); // Log out before returning
+		return ret;
+	}
+
+	ret = robotController.disable_robot();
+	if (ret != ERR_SUCC) {
+		std::cout << "Disable robot failed with error: " << ret << std::endl;
+	}
+
+	robotController.login_out();
+
+	return ret;
 }
 
 
@@ -24,103 +103,6 @@ void checklogin(int ret, const string& ipaddr)
         printf("\nlogin failed ,please check ip addr\n");
 		
     }
-}
-
-int get_robot_status(const string& ipaddr)
-{
-    JAKAZuRobot robotController;
-    RobotStatus robstatus;
-    int ret;
-
-    ret = robotController.login_in(ipaddr.c_str());
-    cout << " ret :" << ret << endl;
-
-    robotController.power_on();
-
-    robotController.enable_robot();
-
-	robotController.get_robot_status(&robstatus);
-	cout << " errcode is :" << robstatus.errcode << endl;
-	cout << " inpos is :" << robstatus.inpos << endl;
-	cout << " powered_on is :" << robstatus.powered_on << endl;
-	cout << " enabled is :" << robstatus.errcode << endl;
-	cout << " rapidrate is :" << robstatus.rapidrate << endl;
-	cout << " protective_stop is :" << robstatus.protective_stop << endl;
-	cout << " emergency_stop is :" << robstatus.emergency_stop << endl;
-	cout << " rapidrate is :" << robstatus.rapidrate << endl;
-	cout << " dout is : {";
-	for (int i = 1; i < (sizeof(robstatus.dout) / sizeof(robstatus.dout[0])); i++)
-	{
-		cout << robstatus.dout[i] << ",";
-		if (0 == i % 20)
-			cout << endl;
-	}
-	cout << robstatus.dout[sizeof(robstatus.dout) / sizeof(robstatus.dout[0]) - 1] << "}" << endl;
-	cout << " tio_dout is : {";
-	for (int i = 1; i < (sizeof(robstatus.tio_dout) / sizeof(robstatus.tio_dout[0])); i++)
-	{
-		cout << robstatus.tio_dout[i] << ",";
-		if (0 == i % 20)
-			cout << endl;
-	}
-	cout << robstatus.tio_dout[sizeof(robstatus.tio_dout) / sizeof(robstatus.tio_dout[0]) - 1] << "}" << endl;
-	cout << " din is : {";
-	for (int i = 1; i < (sizeof(robstatus.din) / sizeof(robstatus.din[0])); i++)
-	{
-		cout << robstatus.din[i] << ",";
-		if (0 == i % 20)
-			cout << endl;
-	}
-	cout << robstatus.din[sizeof(robstatus.din) / sizeof(robstatus.din[0]) - 1] << "}" << endl;
-	cout << " tio_din is : {";
-	for (int i = 1; i < (sizeof(robstatus.tio_din) / sizeof(robstatus.tio_din[0])); i++)
-	{
-		cout << robstatus.tio_din[i] << ",";
-		if (0 == i % 20)
-			cout << endl;
-	}
-	cout << robstatus.tio_din[sizeof(robstatus.tio_din) / sizeof(robstatus.tio_din[0]) - 1] << "}" << endl;
-	cout << " ain is :\n {";
-	for (int i = 1; i < (sizeof(robstatus.ain) / sizeof(robstatus.ain[0])); i++)
-	{
-		cout << robstatus.ain[i] << ",";
-		if (0 == i % 20)
-			cout << endl;
-	}
-	cout << robstatus.ain[sizeof(robstatus.ain) / sizeof(robstatus.ain[0]) - 1] << "}" << endl;
-	cout << " tio_ain is\n : {";
-	for (int i = 1; i < (sizeof(robstatus.tio_ain) / sizeof(robstatus.tio_ain[0])); i++)
-	{
-		cout << robstatus.tio_ain[i] << ",";
-		if (0 == i % 20)
-			cout << endl;
-	}
-	cout << robstatus.tio_ain[sizeof(robstatus.tio_ain) / sizeof(robstatus.tio_ain[0]) - 1] << "}" << endl;
-	cout << " aout is : \n{";
-	for (int i = 1; i < (sizeof(robstatus.aout) / sizeof(robstatus.aout[0])); i++)
-	{
-		cout << robstatus.aout[i] << ",";
-		if (0 == i % 20)
-			cout << endl;
-	}
-	cout << robstatus.aout[sizeof(robstatus.aout) / sizeof(robstatus.aout[0]) - 1] << "}" << endl;
-	cout << " current_tool_id is :" << robstatus.current_tool_id << endl;
-	cout << "tcp_pos is : x: " << robstatus.cartesiantran_position[0] << "  y: " << robstatus.cartesiantran_position[1] << "  z: " << robstatus.cartesiantran_position[2];
-	cout << "rx: " << robstatus.cartesiantran_position[3] * (180.0 / PI) << "  ry: " << robstatus.cartesiantran_position[4] * (180.0 / PI) << "  rz: " << robstatus.cartesiantran_position[5] * (180.0 / PI) << endl;
-	cout << " joint_pos is : {";
-	for (int i = 0; i < (sizeof(robstatus.joint_position) / sizeof(robstatus.joint_position[0])) - 1; i++)
-	{
-		cout << robstatus.joint_position[i] * (180.0 / PI) << ",";
-	}
-	cout << robstatus.joint_position[sizeof(robstatus.joint_position) / sizeof(robstatus.joint_position[0]) - 1] << "}" << endl;
-	cout << " on_soft_limit is :" << robstatus.on_soft_limit << endl;
-	cout << " current_user_coordinate_id is :" << robstatus.current_user_id << endl;
-	cout << " drag_status is :" << robstatus.drag_status << endl;
-	cout << " is_socket_connect is :" << robstatus.is_socket_connect << endl;
-	//robotController.disable_robot();
-	//robotController.power_off();
-	//robotController.login_out();
-	return 0;
 }
 
 //const JointValue* joint_pos is a pointer to a JointValue object. The joint_pos->jVal[i] syntax is used to access the jVal member of the JointValue object that joint_pos points to.
@@ -213,4 +195,96 @@ void useDigitalOutput(const char* ipaddr, int outputIndex) {
 	err = robotController.set_digital_output(IO_TOOL, outputIndex, FALSE);
 
 	robotController.login_out();
+}
+
+
+errno_t save_robot_status_and_digital_output(const string& ipaddr, int digitalOutputIndex1, int digitalOutputIndex2) {
+	JAKAZuRobot robotController;
+	RobotStatus robstatus;
+	BOOL digitalOutput1, digitalOutput2;
+	errno_t ret;
+
+	ret = robotController.login_in(ipaddr.c_str());
+	if (ret != ERR_SUCC) return ret;
+
+	robotController.power_on();
+	robotController.enable_robot();
+
+	robotController.get_robot_status(&robstatus);
+	robotController.get_digital_output(IO_TOOL, digitalOutputIndex1, &digitalOutput1);
+	robotController.get_digital_output(IO_TOOL, digitalOutputIndex2, &digitalOutput2);
+
+	RobotSession session;
+	for (int i = 0; i < 6; ++i) {
+		session.joint_position.jVal[i] = robstatus.joint_position[i];
+	}
+	session.digital_output1 = digitalOutput1;
+	session.digital_output2 = digitalOutput2;
+
+	sessionStorage.push_back(session);
+
+	robotController.login_out();
+	return ERR_SUCC;
+}
+
+errno_t run_saved_movements(const string& ipaddr, int repeatCount, MoveMode move_mode, BOOL is_block, double speed) {
+	JAKAZuRobot robotController;
+	errno_t ret;
+
+	ret = robotController.login_in(ipaddr.c_str());
+	if (ret != ERR_SUCC) return ret;
+
+	robotController.power_on();
+	robotController.enable_robot();
+
+	for (int i = 0; i < repeatCount; ++i) {
+		for (const auto& session : sessionStorage) {
+			ret = robotController.joint_move(&session.joint_position, move_mode, is_block, speed);
+			if (ret != ERR_SUCC) return ret;
+
+			robotController.set_digital_output(IO_TOOL, 0, session.digital_output1);
+			robotController.set_digital_output(IO_TOOL, 1, session.digital_output2);
+		}
+	}
+
+	robotController.login_out();
+	return ERR_SUCC;
+}
+
+int get_robot_status(const string& ipaddr)
+{
+	JAKAZuRobot robotController;
+	RobotStatus robstatus;
+	int ret;
+
+	ret = robotController.login_in(ipaddr.c_str());
+	cout << " ret :" << ret << endl;
+
+	robotController.power_on();
+
+	robotController.enable_robot();
+
+	robotController.get_robot_status(&robstatus);
+	cout << " errcode is :" << robstatus.errcode << endl;
+	cout << " inpos is :" << robstatus.inpos << endl;
+	cout << " powered_on is :" << robstatus.powered_on << endl;
+	cout << " enabled is :" << robstatus.errcode << endl;
+	cout << " rapidrate is :" << robstatus.rapidrate << endl;
+	cout << " protective_stop is :" << robstatus.protective_stop << endl;
+	cout << " emergency_stop is :" << robstatus.emergency_stop << endl;
+	cout << " rapidrate is :" << robstatus.rapidrate << endl;
+	cout << " current_tool_id is :" << robstatus.current_tool_id << endl;
+	cout << "tcp_pos is : x: " << robstatus.cartesiantran_position[0] << "  y: " << robstatus.cartesiantran_position[1] << "  z: " << robstatus.cartesiantran_position[2];
+	cout << "rx: " << robstatus.cartesiantran_position[3] * (180.0 / PI) << "  ry: " << robstatus.cartesiantran_position[4] * (180.0 / PI) << "  rz: " << robstatus.cartesiantran_position[5] * (180.0 / PI) << endl;
+	cout << " joint_pos is : {";
+	for (int i = 0; i < (sizeof(robstatus.joint_position) / sizeof(robstatus.joint_position[0])) - 1; i++)
+	{
+		cout << robstatus.joint_position[i] * (180.0 / PI) << ",";
+	}
+	cout << robstatus.joint_position[sizeof(robstatus.joint_position) / sizeof(robstatus.joint_position[0]) - 1] << "}" << endl;
+	cout << " on_soft_limit is :" << robstatus.on_soft_limit << endl;
+	cout << " current_user_coordinate_id is :" << robstatus.current_user_id << endl;
+	cout << " drag_status is :" << robstatus.drag_status << endl;
+	cout << " is_socket_connect is :" << robstatus.is_socket_connect << endl;
+	return 0;
 }

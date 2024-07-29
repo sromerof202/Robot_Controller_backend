@@ -21,7 +21,7 @@ int main()
         toRadians(0),
         toRadians(45),
         toRadians(0) };
-    joint_move(ipaddr, &joint_pos, ABS, TRUE, 0.6);
+    joint_move(ipaddr, &joint_pos, , TRUE, 0.6);
 
 
     //linear move

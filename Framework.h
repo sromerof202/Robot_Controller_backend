@@ -3,6 +3,12 @@
 #include <JAKAZuRobot.h>
 using namespace std;
 
+errno_t login_in(const char* ipaddr);
+errno_t login_out();
+errno_t power_on();
+errno_t power_off();
+errno_t enable_robot();
+errno_t disable_robot(const char* ipaddr);
 
 double toRadians(double degrees); 
 
@@ -34,3 +40,7 @@ void printDigitalOutputStatus(
 );
 
 void useDigitalOutput(const char* ipaddr, int outputIndex);
+
+errno_t save_robot_status_and_digital_output(const string& ipaddr, int digitalOutputIndex1, int digitalOutputIndex2);
+
+errno_t run_saved_movements(const string& ipaddr, int repeatCount, MoveMode move_mode, BOOL is_block, double speed);

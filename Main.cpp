@@ -6,11 +6,76 @@
 #include "JAKAZuRobot.h" // JAKA header file
 #include "Framework.h" // Our unique header file (Declaration/implementation separate)
 
-constexpr double PI = 3.1415926;
-constexpr char ipaddr[] = "10.5.5.100";
+constexpr char ipaddr[] = "192.168.0.126";
 
 int main() {
     crow::SimpleApp app;
+
+    CROW_ROUTE(app, "/login_in")
+        ([]() {
+        errno_t result = login_in(ipaddr);
+        if (result == ERR_SUCC) {
+            return crow::response(200, "Login successful");
+        }
+        else {
+            return crow::response(500, "Login failed");
+        }
+            });
+
+    CROW_ROUTE(app, "/login_out")
+        ([]() {
+        errno_t result = login_out();
+        if (result == ERR_SUCC) {
+            return crow::response(200, "Logout successful");
+        }
+        else {
+            return crow::response(500, "Logout failed");
+        }
+            });
+
+    CROW_ROUTE(app, "/power_on")
+        ([]() {
+        errno_t result = power_on();
+        if (result == ERR_SUCC) {
+            return crow::response(200, "Power on successful");
+        }
+        else {
+            return crow::response(500, "Power on failed");
+        }
+            });
+
+    CROW_ROUTE(app, "/power_off")
+        ([]() {
+        errno_t result = power_off();
+        if (result == ERR_SUCC) {
+            return crow::response(200, "Power off successful");
+        }
+        else {
+            return crow::response(500, "Power off failed");
+        }
+            });
+
+    CROW_ROUTE(app, "/enable_robot")
+        ([]() {
+        errno_t result = enable_robot();
+        if (result == ERR_SUCC) {
+            return crow::response(200, "Robot enabled successfully");
+        }
+        else {
+            return crow::response(500, "Robot enable failed");
+        }
+            });
+
+    CROW_ROUTE(app, "/disable_robot").methods(crow::HTTPMethod::Post)
+        ([]() {
+        errno_t result = disable_robot(ipaddr); // Assuming disable_robot now accepts an IP address
+        if (result == ERR_SUCC) {
+            return crow::response(200, "Robot disabled successfully");
+        }
+        else {
+            return crow::response(500, "Robot disable failed");
+        }
+            });
 
     CROW_ROUTE(app, "/status")
         ([]() {
@@ -69,5 +134,30 @@ int main() {
         return crow::response(200, "Digital Output 2 Used");
             });
 
+    // New route for saving robot status and digital output status
+    CROW_ROUTE(app, "/save_robot_status")
+        ([]() {
+        errno_t result = save_robot_status_and_digital_output(ipaddr, 0, 1);
+        if (result == ERR_SUCC) {
+            return crow::response(200, "Robot status saved successfully");
+        }
+        else {
+            return crow::response(500, "Failed to save robot status");
+        }
+            });
+
+    // New route for running saved movements
+    CROW_ROUTE(app, "/run_saved_movements/<int>")
+        ([](int times) {
+        errno_t result = run_saved_movements(ipaddr, times, ABS, TRUE, 0.9); // Example parameters
+        if (result == ERR_SUCC) {
+            return crow::response(200, "Saved movements executed successfully");
+        }
+        else {
+            return crow::response(500, "Failed to execute saved movements");
+        }
+            });
+
+             
     app.port(8080).multithreaded().run();
 }
