@@ -5,10 +5,11 @@ using namespace std;
 
 errno_t login_in(const char* ipaddr);
 errno_t login_out();
-errno_t power_on();
-errno_t power_off();
-errno_t enable_robot();
+errno_t power_on(const char* ipaddr);
+errno_t power_off(const char* ipaddr);
+errno_t enable_robot(const char* ipaddr);
 errno_t disable_robot(const char* ipaddr);
+errno_t shut_down(const char* ipaddr);
 
 double toRadians(double degrees); 
 

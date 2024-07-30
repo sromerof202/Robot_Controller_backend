@@ -140,6 +140,7 @@
     <ClCompile Include="main_alternative.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CORS.h" />
     <ClInclude Include="inc_of_c++\JAKAZuRobot.h" />
     <ClInclude Include="inc_of_c++\jkerr.h" />
     <ClInclude Include="inc_of_c++\jktypes.h" />

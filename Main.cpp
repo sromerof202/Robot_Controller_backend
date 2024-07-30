@@ -6,10 +6,11 @@
 #include "JAKAZuRobot.h" // JAKA header file
 #include "Framework.h" // Our unique header file (Declaration/implementation separate)
 
+#include "CORS.h"
 constexpr char ipaddr[] = "192.168.0.126";
 
 int main() {
-    crow::SimpleApp app;
+    crow::App<CORS> app;
 
     CROW_ROUTE(app, "/login_in")
         ([]() {
@@ -35,7 +36,7 @@ int main() {
 
     CROW_ROUTE(app, "/power_on")
         ([]() {
-        errno_t result = power_on();
+        errno_t result = power_on(ipaddr);
         if (result == ERR_SUCC) {
             return crow::response(200, "Power on successful");
         }
@@ -46,7 +47,7 @@ int main() {
 
     CROW_ROUTE(app, "/power_off")
         ([]() {
-        errno_t result = power_off();
+        errno_t result = power_off(ipaddr);
         if (result == ERR_SUCC) {
             return crow::response(200, "Power off successful");
         }
@@ -57,7 +58,7 @@ int main() {
 
     CROW_ROUTE(app, "/enable_robot")
         ([]() {
-        errno_t result = enable_robot();
+        errno_t result = enable_robot(ipaddr);
         if (result == ERR_SUCC) {
             return crow::response(200, "Robot enabled successfully");
         }
@@ -66,14 +67,25 @@ int main() {
         }
             });
 
-    CROW_ROUTE(app, "/disable_robot").methods(crow::HTTPMethod::Post)
+    CROW_ROUTE(app, "/disable_robot")
         ([]() {
-        errno_t result = disable_robot(ipaddr); // Assuming disable_robot now accepts an IP address
+        errno_t result = disable_robot(ipaddr);
         if (result == ERR_SUCC) {
             return crow::response(200, "Robot disabled successfully");
         }
         else {
-            return crow::response(500, "Robot disable failed");
+            return crow::response(500, "Robot disabled failed");
+        }
+            });
+
+   CROW_ROUTE(app, "/shut_down")
+        ([]() {
+        errno_t result = shut_down(ipaddr);
+        if (result == ERR_SUCC) {
+            return crow::response(200, "shutdown successfully");
+        }
+        else {
+            return crow::response(500, "shut down failed");
         }
             });
 

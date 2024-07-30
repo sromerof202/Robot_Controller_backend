@@ -8,6 +8,7 @@
 constexpr double PI = 3.1415926;
 using namespace std;
 
+
 struct RobotSession {
 	JointValue joint_position;
 	BOOL digital_output1;
@@ -34,59 +35,63 @@ errno_t login_out()
 	return ret;
 }
 
-errno_t power_on()
+errno_t power_on(const char* ipaddr)
 {
 	JAKAZuRobot robotController;
+	errno_t loginResult = robotController.login_in(ipaddr);
+	if (loginResult != ERR_SUCC) {
+		return loginResult;
+	}
 	errno_t ret = robotController.power_on();
+	robotController.login_out();
 	return ret;
 }
 
-errno_t power_off()
+errno_t power_off(const char* ipaddr)
 {
 	JAKAZuRobot robotController;
+	errno_t loginResult = robotController.login_in(ipaddr);
+	if (loginResult != ERR_SUCC) {
+		return loginResult;
+	}
 	errno_t ret = robotController.power_off();
+	robotController.login_out();
 	return ret;
 }
 
-errno_t enable_robot()
+errno_t enable_robot(const char* ipaddr)
 {
 	JAKAZuRobot robotController;
+	errno_t loginResult = robotController.login_in(ipaddr);
+	if (loginResult != ERR_SUCC) {
+		return loginResult;
+	}
 	errno_t ret = robotController.enable_robot();
+	robotController.login_out();
 	return ret;
 }
 
 errno_t disable_robot(const char* ipaddr)
 {
 	JAKAZuRobot robotController;
-	errno_t ret;
-
-	ret = robotController.login_in(ipaddr);
-	if (ret != ERR_SUCC) {
-		std::cout << "Login failed with error: " << ret << std::endl;
-		return ret;
+	errno_t loginResult = robotController.login_in(ipaddr);
+	if (loginResult != ERR_SUCC) {
+		return loginResult;
 	}
-
-	ret = robotController.power_on();
-	if (ret != ERR_SUCC) {
-		std::cout << "Power on failed with error: " << ret << std::endl;
-		robotController.login_out(); // Log out before returning
-		return ret;
-	}
-
-	ret = robotController.enable_robot();
-	if (ret != ERR_SUCC) {
-		std::cout << "Enable robot failed with error: " << ret << std::endl;
-		robotController.login_out(); // Log out before returning
-		return ret;
-	}
-
-	ret = robotController.disable_robot();
-	if (ret != ERR_SUCC) {
-		std::cout << "Disable robot failed with error: " << ret << std::endl;
-	}
-
+	errno_t ret = robotController.disable_robot();
 	robotController.login_out();
+	return ret;
+}
 
+errno_t shut_down(const char* ipaddr)
+{
+	JAKAZuRobot robotController;
+	errno_t loginResult = robotController.login_in(ipaddr);
+	if (loginResult != ERR_SUCC) {
+		return loginResult;
+	}
+	errno_t ret = robotController.shut_down();
+	robotController.login_out();
 	return ret;
 }
 
