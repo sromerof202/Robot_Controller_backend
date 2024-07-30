@@ -1,4 +1,8 @@
+// Framework.cpp
+#include "Framework.h"
 #include <iostream>
+#include <random>
+#include <crow_all.h>
 #include <vector>
 #include <JAKAZuRobot.h>
 #include <windows.h>
@@ -8,6 +12,7 @@
 constexpr double PI = 3.1415926;
 using namespace std;
 
+APIPionoid::APIPionoid(const string& ipaddr) : ipaddr(ipaddr) {}
 
 struct RobotSession {
 	JointValue joint_position;
@@ -21,108 +26,82 @@ double toRadians(double degrees) {
 	return degrees * PI / 180.0;
 }
 
-errno_t login_in(const char* ipaddr)
-{
-	JAKAZuRobot robotController;
-	errno_t ret = robotController.login_in(ipaddr);
-	return ret;
+errno_t APIPionoid::login_in() {
+	return robotController.login_in(ipaddr.c_str());
 }
 
-errno_t login_out()
-{
-	JAKAZuRobot robotController;
-	errno_t ret = robotController.login_out();
-	return ret;
+errno_t APIPionoid::login_out() {
+	return robotController.login_out();
 }
 
-errno_t power_on(const char* ipaddr)
-{
-	JAKAZuRobot robotController;
-	errno_t loginResult = robotController.login_in(ipaddr);
+errno_t APIPionoid::power_on() {
+	errno_t loginResult = login_in();
 	if (loginResult != ERR_SUCC) {
 		return loginResult;
 	}
 	errno_t ret = robotController.power_on();
-	robotController.login_out();
+	login_out();
 	return ret;
 }
 
-errno_t power_off(const char* ipaddr)
-{
-	JAKAZuRobot robotController;
-	errno_t loginResult = robotController.login_in(ipaddr);
+errno_t APIPionoid::power_off() {
+	errno_t loginResult = login_in();
 	if (loginResult != ERR_SUCC) {
 		return loginResult;
 	}
 	errno_t ret = robotController.power_off();
-	robotController.login_out();
+	login_out();
 	return ret;
 }
 
-errno_t enable_robot(const char* ipaddr)
-{
-	JAKAZuRobot robotController;
-	errno_t loginResult = robotController.login_in(ipaddr);
+errno_t APIPionoid::enable_robot() {
+	errno_t loginResult = login_in();
 	if (loginResult != ERR_SUCC) {
 		return loginResult;
 	}
 	errno_t ret = robotController.enable_robot();
-	robotController.login_out();
+	login_out();
 	return ret;
 }
 
-errno_t disable_robot(const char* ipaddr)
-{
-	JAKAZuRobot robotController;
-	errno_t loginResult = robotController.login_in(ipaddr);
+errno_t APIPionoid::disable_robot() {
+	errno_t loginResult = login_in();
 	if (loginResult != ERR_SUCC) {
 		return loginResult;
 	}
 	errno_t ret = robotController.disable_robot();
-	robotController.login_out();
+	login_out();
 	return ret;
 }
 
-errno_t shut_down(const char* ipaddr)
-{
-	JAKAZuRobot robotController;
-	errno_t loginResult = robotController.login_in(ipaddr);
+errno_t APIPionoid::shut_down() {
+	errno_t loginResult = login_in();
 	if (loginResult != ERR_SUCC) {
 		return loginResult;
 	}
 	errno_t ret = robotController.shut_down();
-	robotController.login_out();
+	login_out();
 	return ret;
 }
 
-
-void checklogin(int ret, const string& ipaddr)
-{
-    if (ret == 0)
-    {
-        printf("\nlogin robot:%s success\n", ipaddr.c_str());
-		
-    }
-    else
-    {
-        printf("\nlogin failed ,please check ip addr\n");
-		
-    }
+void checklogin(int ret, const string& ipaddr) {
+	if (ret == 0) {
+		printf("\nlogin robot:%s success\n", ipaddr.c_str());
+	}
+	else {
+		printf("\nlogin failed, please check ip addr\n");
+	}
 }
 
-//const JointValue* joint_pos is a pointer to a JointValue object. The joint_pos->jVal[i] syntax is used to access the jVal member of the JointValue object that joint_pos points to.
-//using a pointer to JointValue allows the function to access and potentially modify the original JointValue object without making a copy of it. being more efficient and flexible.
-errno_t joint_move(const std::string& ipaddr, const JointValue* joint_pos, MoveMode move_mode, BOOL is_block, double speed)
-{
-	errno_t ret = 1;
 
-	JAKAZuRobot robotController;
-
-	ret = robotController.login_in(ipaddr.c_str());
-	checklogin(ret, ipaddr);
+errno_t APIPionoid::joint_move(const JointValue* joint_pos, MoveMode move_mode, BOOL is_block, double speed) {
+	errno_t ret = login_in();
+	if (ret != ERR_SUCC) {
+		checklogin(ret, ipaddr);
+		return ret;
+	}
 
 	robotController.power_on();
-
 	robotController.enable_robot();
 	printf("start move\n");
 
@@ -132,42 +111,36 @@ errno_t joint_move(const std::string& ipaddr, const JointValue* joint_pos, MoveM
 
 	ret = robotController.joint_move(joint_pos, move_mode, is_block, speed);
 	printf("ret=%d\n", ret);
+	login_out();
 	return ret;
 }
 
+int APIPionoid::linear_move(const CartesianPose& cart, MoveMode move_mode, BOOL is_block, double speed, double acc, double jerk, const char* tcp) {
+	int ret = login_in();
+	if (ret != ERR_SUCC) {
+		checklogin(ret, ipaddr);
+		return ret;
+	}
 
-int linear_move(const CartesianPose& cart, const char* ipaddr, MoveMode move_mode, BOOL is_block, double speed, double acc, double jerk, const char* tcp)
-{
-    int ret;
-    
-    JAKAZuRobot robotController;
-    RobotStatus robstatus;
-    
-    ret = robotController.login_in(ipaddr);
-    
-    checklogin(ret, ipaddr);
-    
-    robotController.power_on();
-    
-    robotController.enable_robot();
+	robotController.power_on();
+	robotController.enable_robot();
 
-    printf("x=%f, y=%f, z=%f, rx=%f, ry=%f, rz=%f\n", cart.tran.x, cart.tran.y, cart.tran.z, cart.rpy.rx * (180.0 / PI), cart.rpy.ry * (180.0 / PI), cart.rpy.rz * (180.0 / PI));
-    
-    OptionalCond* option_cond = NULL; // initialize this as needed
-    ret = robotController.linear_move(&cart, move_mode, is_block, speed, acc, jerk, option_cond);
-    
-    printf("ret=%d", ret);
+	printf("x=%f, y=%f, z=%f, rx=%f, ry=%f, rz=%f\n", cart.tran.x, cart.tran.y, cart.tran.z, cart.rpy.rx * (180.0 / PI), cart.rpy.ry * (180.0 / PI), cart.rpy.rz * (180.0 / PI));
 
-    robotController.login_out();
-    return 0;
+	OptionalCond* option_cond = NULL; // initialize this as needed
+	ret = robotController.linear_move(&cart, move_mode, is_block, speed, acc, jerk, option_cond);
+
+	printf("ret=%d", ret);
+	login_out();
+	return ret;
 }
 
-void printDigitalOutputStatus(const char* ipaddr, int digitalOutputIndex1, int digitalOutputIndex2) {
+void APIPionoid::printDigitalOutputStatus(int digitalOutputIndex1, int digitalOutputIndex2) {
 	BOOL digitalOutput1, digitalOutput2;
-	errno_t err;
-
-	JAKAZuRobot robotController;
-	robotController.login_in(ipaddr);
+	errno_t err = login_in();
+	if (err != ERR_SUCC) {
+		return;
+	}
 
 	err = robotController.get_digital_output(IO_TOOL, digitalOutputIndex1, &digitalOutput1);
 	err = robotController.get_digital_output(IO_TOOL, digitalOutputIndex2, &digitalOutput2);
@@ -175,18 +148,16 @@ void printDigitalOutputStatus(const char* ipaddr, int digitalOutputIndex1, int d
 	cout << "DO_1: " << (digitalOutput1 ? "ON" : "OFF") << endl;
 	cout << "DO_2: " << (digitalOutput2 ? "ON" : "OFF") << endl;
 
-	robotController.login_out();
+	login_out();
 }
 
-void useDigitalOutput(const char* ipaddr, int outputIndex) {
-	errno_t err;
-
-	JAKAZuRobot robotController;
-
-	robotController.login_in(ipaddr);
+void APIPionoid::useDigitalOutput(int outputIndex) {
+	errno_t err = login_in();
+	if (err != ERR_SUCC) {
+		return;
+	}
 
 	robotController.power_on();
-
 	robotController.enable_robot();
 
 	// Turn on DO
@@ -199,21 +170,21 @@ void useDigitalOutput(const char* ipaddr, int outputIndex) {
 	// Turn off DO
 	err = robotController.set_digital_output(IO_TOOL, outputIndex, FALSE);
 
-	robotController.login_out();
+	login_out();
 }
 
 
-errno_t save_robot_status_and_digital_output(const string& ipaddr, int digitalOutputIndex1, int digitalOutputIndex2) {
-	JAKAZuRobot robotController;
-	RobotStatus robstatus;
-	BOOL digitalOutput1, digitalOutput2;
-	errno_t ret;
-
-	ret = robotController.login_in(ipaddr.c_str());
-	if (ret != ERR_SUCC) return ret;
+errno_t APIPionoid::save_robot_status_and_digital_output(int digitalOutputIndex1, int digitalOutputIndex2) {
+	errno_t ret = login_in();
+	if (ret != ERR_SUCC) {
+		return ret;
+	}
 
 	robotController.power_on();
 	robotController.enable_robot();
+
+	RobotStatus robstatus;
+	BOOL digitalOutput1, digitalOutput2;
 
 	robotController.get_robot_status(&robstatus);
 	robotController.get_digital_output(IO_TOOL, digitalOutputIndex1, &digitalOutput1);
@@ -228,12 +199,11 @@ errno_t save_robot_status_and_digital_output(const string& ipaddr, int digitalOu
 
 	sessionStorage.push_back(session);
 
-	robotController.login_out();
+	login_out();
 	return ERR_SUCC;
 }
 
-errno_t run_saved_movements(const string& ipaddr, int repeatCount, MoveMode move_mode, BOOL is_block, double speed) {
-	JAKAZuRobot robotController;
+errno_t APIPionoid::run_saved_movements(int repeatCount, MoveMode move_mode, BOOL is_block, double speed) {
 	errno_t ret;
 
 	ret = robotController.login_in(ipaddr.c_str());
@@ -256,9 +226,7 @@ errno_t run_saved_movements(const string& ipaddr, int repeatCount, MoveMode move
 	return ERR_SUCC;
 }
 
-int get_robot_status(const string& ipaddr)
-{
-	JAKAZuRobot robotController;
+int APIPionoid::get_robot_status() {
 	RobotStatus robstatus;
 	int ret;
 
@@ -266,24 +234,21 @@ int get_robot_status(const string& ipaddr)
 	cout << " ret :" << ret << endl;
 
 	robotController.power_on();
-
 	robotController.enable_robot();
 
 	robotController.get_robot_status(&robstatus);
 	cout << " errcode is :" << robstatus.errcode << endl;
 	cout << " inpos is :" << robstatus.inpos << endl;
 	cout << " powered_on is :" << robstatus.powered_on << endl;
-	cout << " enabled is :" << robstatus.errcode << endl;
+	cout << " enabled is :" << robstatus.enabled << endl;
 	cout << " rapidrate is :" << robstatus.rapidrate << endl;
 	cout << " protective_stop is :" << robstatus.protective_stop << endl;
 	cout << " emergency_stop is :" << robstatus.emergency_stop << endl;
-	cout << " rapidrate is :" << robstatus.rapidrate << endl;
 	cout << " current_tool_id is :" << robstatus.current_tool_id << endl;
 	cout << "tcp_pos is : x: " << robstatus.cartesiantran_position[0] << "  y: " << robstatus.cartesiantran_position[1] << "  z: " << robstatus.cartesiantran_position[2];
 	cout << "rx: " << robstatus.cartesiantran_position[3] * (180.0 / PI) << "  ry: " << robstatus.cartesiantran_position[4] * (180.0 / PI) << "  rz: " << robstatus.cartesiantran_position[5] * (180.0 / PI) << endl;
 	cout << " joint_pos is : {";
-	for (int i = 0; i < (sizeof(robstatus.joint_position) / sizeof(robstatus.joint_position[0])) - 1; i++)
-	{
+	for (int i = 0; i < (sizeof(robstatus.joint_position) / sizeof(robstatus.joint_position[0])) - 1; i++) {
 		cout << robstatus.joint_position[i] * (180.0 / PI) << ",";
 	}
 	cout << robstatus.joint_position[sizeof(robstatus.joint_position) / sizeof(robstatus.joint_position[0]) - 1] << "}" << endl;
@@ -291,5 +256,36 @@ int get_robot_status(const string& ipaddr)
 	cout << " current_user_coordinate_id is :" << robstatus.current_user_id << endl;
 	cout << " drag_status is :" << robstatus.drag_status << endl;
 	cout << " is_socket_connect is :" << robstatus.is_socket_connect << endl;
+
+	robotController.login_out();
 	return 0;
+}
+
+
+unordered_map<string, unique_ptr<APIPionoid>> sessions;
+
+string generateSessionID() {
+	static random_device rd;
+	static mt19937 gen(rd());
+	static uniform_int_distribution<> dis(0, 15);
+	static const char* chars = "0123456789abcdef";
+
+	string sessionID(32, '0');
+	for (auto& c : sessionID) {
+		c = chars[dis(gen)];
+	}
+	return sessionID;
+}
+
+void setSessionCookie(crow::response& res, const string& sessionID) {
+	res.add_header("Set-Cookie", "session_id=" + sessionID + "; Path=/; HttpOnly");
+}
+
+string getSessionID(const crow::request& req) {
+	auto cookie = req.get_header_value("Cookie");
+	auto pos = cookie.find("session_id=");
+	if (pos != string::npos) {
+		return cookie.substr(pos + 11, 32);
+	}
+	return "";
 }
