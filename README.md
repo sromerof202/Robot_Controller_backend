@@ -19,7 +19,7 @@ This project is a C++ framework designed for controlling the JAKA Corobot and mo
 
 ## Running the Project
 
-- se Visual Studio to build and run.
+- Use Visual Studio to build and run.
 - Use run_program.bat to automate the build and run process on startup.
 
 ## Server and Middleware
