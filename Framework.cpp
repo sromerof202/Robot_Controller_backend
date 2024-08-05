@@ -278,7 +278,7 @@ string generateSessionID() {
 }
 
 void setSessionCookie(crow::response& res, const string& sessionID) {
-	res.add_header("Set-Cookie", "session_id=" + sessionID + "; Path=/; HttpOnly");
+	res.add_header("Set-Cookie", "session_id=" + sessionID + "; Path=/; HttpOnly;SameSite=None; Secure");
 }
 
 string getSessionID(const crow::request& req) {

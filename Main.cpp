@@ -33,9 +33,9 @@ int main() {
     CROW_ROUTE(app, "/login_in")
         ([](const crow::request& req) {
         auto sessionID = getSessionID(req);
-        std::cout << "Session ID: " << sessionID << std::endl; // Debug print
+        std::cout << "Session ID: " << sessionID << std::endl; 
         if (sessions.find(sessionID) == sessions.end()) {
-            std::cout << "Session not found" << std::endl; // Debug print
+            std::cout << "Session not found" << std::endl; 
             return crow::response(400, "Session not found");
         }
 
@@ -145,7 +145,7 @@ int main() {
         }
             });
 
-    CROW_ROUTE(app, "/status")
+     CROW_ROUTE(app, "/status")
         ([](const crow::request& req) {
         auto sessionID = getSessionID(req);
         if (sessions.find(sessionID) == sessions.end()) {

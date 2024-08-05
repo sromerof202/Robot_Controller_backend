@@ -13,6 +13,9 @@
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
+# Ignore the crow_key_pair.pem file
+crow_key_pair.pem
+
 # Mono auto generated files
 mono_crash.*
 
