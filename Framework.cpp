@@ -188,6 +188,35 @@ void APIPionoid::useDigitalOutput(int outputIndex) {
 	login_out();
 }
 
+void APIPionoid::useDigitalInput(int inputIndex) {
+	errno_t err = login_in();
+	if (err != ERR_SUCC) {
+		return;
+	}
+
+	robotController.power_on();
+	robotController.enable_robot();
+
+	BOOL currentState;
+	err = robotController.get_digital_input(IO_CABINET, inputIndex, &currentState);
+	if (err != ERR_SUCC) {
+		std::cout << "Error getting digital Input state: " << err << std::endl;
+		login_out();
+		return;
+	}
+
+	BOOL newState = !currentState;
+	err = robotController.set_digital_output(IO_CABINET, inputIndex, newState);
+	if (err != ERR_SUCC) {
+		std::cout << "Error setting digital Input: " << err << std::endl;
+	}
+	else {
+		std::cout << "Digital Input " << inputIndex << " set to " << (newState ? "ON" : "OFF") << std::endl;
+	}
+
+	login_out();
+}
+
 
 errno_t APIPionoid::save_robot_status_and_digital_output(int digitalOutputIndex1, int digitalOutputIndex2, crow::json::wvalue& responseJson) {
 	errno_t ret = login_in();

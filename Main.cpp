@@ -160,26 +160,26 @@ int main() {
         return crow::response(200, "Digital Output Status Printed");
             });
 
-    CROW_ROUTE(app, "/use_digital_output1")
-        ([](const crow::request& req) {
+    CROW_ROUTE(app, "/use_digital_output/<string>")
+        ([](const crow::request& req, const std::string& doIndex) {
         auto sessionID = getSessionID(req);
         if (sessions.find(sessionID) == sessions.end()) {
             return crow::response(400, "Session not found");
         }
 
-        sessions[sessionID]->useDigitalOutput(0);
-        return crow::response(200, "Digital Output 1 Used");
+        sessions[sessionID]->useDigitalOutput(stoi(doIndex) - 1);
+        return crow::response(200, "Digital Output Used");
             });
 
-    CROW_ROUTE(app, "/use_digital_output2")
-        ([](const crow::request& req) {
+    CROW_ROUTE(app, "/use_digital_input/<string>")
+        ([](const crow::request& req, const std::string& diIndex) {
         auto sessionID = getSessionID(req);
         if (sessions.find(sessionID) == sessions.end()) {
             return crow::response(400, "Session not found");
         }
 
-        sessions[sessionID]->useDigitalOutput(1);
-        return crow::response(200, "Digital Output 2 Used");
+        sessions[sessionID]->useDigitalInput(stoi(diIndex) - 1);
+        return crow::response(200, "Digital input Used");
             });
 
     CROW_ROUTE(app, "/save_robot_status")

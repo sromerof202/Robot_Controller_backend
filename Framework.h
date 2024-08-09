@@ -34,6 +34,7 @@ public:
     
     void printDigitalOutputStatus(int digitalOutputIndex1, int digitalOutputIndex2); // Print digital output status
     void useDigitalOutput(int outputIndex); // Use a specific digital output
+    void useDigitalInput(int inputIndex);
 
     int get_robot_status();
 
