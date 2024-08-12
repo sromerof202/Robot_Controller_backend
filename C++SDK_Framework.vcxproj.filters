@@ -41,6 +41,12 @@
     <ClInclude Include="CORS.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="crow_all.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

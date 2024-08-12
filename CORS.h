@@ -25,6 +25,7 @@ public:
             res.add_header("Access-Control-Allow-Credentials", "true");
             res.code = 204; // No Content
             res.end();
+            return;
         }
     }
 

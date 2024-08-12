@@ -7,10 +7,12 @@
 #include "JAKAZuRobot.h" // JAKA header file
 #include "Framework.h" // Our unique header file (Declaration/implementation separate)
 #include "CORS.h"
+#include <string>
+
+std::string url_decode(const std::string& url);
 
 int main() {
     crow::App<CORS> app;
-
  
     CROW_ROUTE(app, "/set_ip")
         .methods("POST"_method)
@@ -21,6 +23,7 @@ int main() {
         }
 
         auto ipaddr = req.body;
+        std::cout << ipaddr;
         sessions[sessionID] = make_unique<APIPionoid>(ipaddr);
 
         crow::response res;
@@ -33,9 +36,9 @@ int main() {
     CROW_ROUTE(app, "/login_in")
         ([](const crow::request& req) {
         auto sessionID = getSessionID(req);
-        std::cout << "Session ID: " << sessionID << std::endl; 
+        std::cout << "Session ID: " << sessionID << std::endl; // Debug print
         if (sessions.find(sessionID) == sessions.end()) {
-            std::cout << "Session not found" << std::endl; 
+            std::cout << "Session not found" << std::endl; // Debug print
             return crow::response(400, "Session not found");
         }
 
@@ -44,6 +47,7 @@ int main() {
             return crow::response(200, "Login successful");
         }
         else {
+            std::cout << "Login failed with error code: " << result << std::endl;
             return crow::response(500, "Login failed");
         }
             });
@@ -145,7 +149,190 @@ int main() {
         }
             });
 
-     CROW_ROUTE(app, "/status")
+    CROW_ROUTE(app, "/digital_output_status")
+        ([](const crow::request& req) {
+        auto sessionID = getSessionID(req);
+        if (sessions.find(sessionID) == sessions.end()) {
+            return crow::response(400, "Session not found");
+        }
+
+        sessions[sessionID]->printDigitalOutputStatus(0, 1);
+        return crow::response(200, "Digital Output Status Printed");
+            });
+
+    CROW_ROUTE(app, "/use_digital_output/<string>")
+        ([](const crow::request& req, const std::string& doIndex) {
+        auto sessionID = getSessionID(req);
+        if (sessions.find(sessionID) == sessions.end()) {
+            return crow::response(400, "Session not found");
+        }
+
+        sessions[sessionID]->useDigitalOutput(stoi(doIndex) - 1);
+        return crow::response(200, "Digital Output Used");
+            });
+
+    CROW_ROUTE(app, "/use_digital_input/<string>")
+        ([](const crow::request& req, const std::string& diIndex) {
+        auto sessionID = getSessionID(req);
+        if (sessions.find(sessionID) == sessions.end()) {
+            return crow::response(400, "Session not found");
+        }
+
+        sessions[sessionID]->useDigitalInput(stoi(diIndex) - 1);
+        return crow::response(200, "Digital input Used");
+            });
+
+    CROW_ROUTE(app, "/save_robot_status")
+        ([](const crow::request& req) {
+        auto sessionID = getSessionID(req);
+        if (sessions.find(sessionID) == sessions.end()) {
+            return crow::response(400, "Session not found");
+        }
+
+        crow::json::wvalue responseJson;
+        errno_t result = sessions[sessionID]->save_robot_status_and_digital_output(0, 1, responseJson);
+
+
+        if (result == ERR_SUCC) {
+            /*return crow::response(200, "Robot status saved successfully");*/
+            return crow::response(responseJson);
+        }
+        else {
+            return crow::response(500, "Failed to save robot status");
+        }
+            });
+
+    /*CROW_ROUTE(app, "/delete_robot_status")
+        .methods("DELETE"_method)
+        ([](const crow::request& req) {
+        auto sessionID = getSessionID(req);
+        if (sessions.find(sessionID) == sessions.end()) {
+            return crow::response(400, "Session not found");
+        }
+
+        
+        std::string nameToDelete = req.body;
+        std::cout << "Received name to delete: " << nameToDelete << std::endl;
+
+       
+        errno_t result = sessions[sessionID]->delete_robot_status(nameToDelete);
+
+        if (result == ERR_SUCC) {
+            return crow::response("Robot status deleted successfully");
+        }
+        else {
+            return crow::response("Failed to delete robot status");
+        }
+            });*/
+    CROW_ROUTE(app, "/delete_robot_status/<string>")
+        ([](const crow::request& req, const std::string& encodedName) {
+        auto sessionID = getSessionID(req);
+        if (sessions.find(sessionID) == sessions.end()) {
+            return crow::response(400, "Session not found");
+        }
+
+        // URL decoding
+        std::string decodedName = url_decode(encodedName);
+        std::cout << "Received name to delete: " << decodedName << std::endl;
+
+        errno_t result = sessions[sessionID]->delete_robot_status(decodedName);
+
+        if (result == ERR_SUCC) {
+            return crow::response("Robot status deleted successfully");
+        }
+        else {
+            return crow::response("Failed to delete robot status");
+        }
+            });
+
+    CROW_ROUTE(app, "/update_robot_status/<string>")
+        .methods("PUT"_method)
+        ([](const crow::request& req, const std::string& originalName) {
+        auto sessionID = getSessionID(req);
+        if (sessions.find(sessionID) == sessions.end()) {
+            return crow::response(400, "Session not found");
+        }
+
+        // URL decoding
+        std::string decodedName = url_decode(originalName);
+
+        // Parse request body as JSON using nlohmann::json
+        json requestJson;
+        try {
+            requestJson = json::parse(req.body);
+        }
+        catch (const json::parse_error& e) {
+            std::cerr << "Error parsing JSON: " << e.what() << std::endl;
+            return crow::response(400, "Invalid JSON");
+        }
+
+        errno_t result = sessions[sessionID]->update_robot_status(decodedName, requestJson);
+
+        if (result == ERR_SUCC) {
+            return crow::response(200, "Robot status updated successfully");
+        }
+        else {
+            return crow::response(500, "Failed to update robot status");
+        }
+            });
+
+
+
+
+    CROW_ROUTE(app, "/run_saved_movements/<int>")
+        ([](const crow::request& req, int times) {
+        auto sessionID = getSessionID(req);
+        if (sessions.find(sessionID) == sessions.end()) {
+            return crow::response(400, "Session not found");
+        }
+
+        errno_t result = sessions[sessionID]->run_saved_movements(times, ABS, TRUE, 0.9); // Example parameters
+        if (result == ERR_SUCC) {
+            return crow::response(200, "Saved movements executed successfully");
+        }
+        else {
+            return crow::response(500, "Failed to execute saved movements");
+        }
+            });
+
+    app.port(8080).multithreaded().run();
+}
+
+std::string url_decode(const std::string& url) {
+    std::string result;
+    std::istringstream input(url);
+    char c;
+
+    while (input.get(c)) {
+        if (c == '%') {
+            int i;
+            if (input.get(c) && std::isxdigit(c)) {
+                i = std::isdigit(c) ? c - '0' : std::toupper(c) - 'A' + 10;
+                i *= 16;
+
+                if (input.get(c) && std::isxdigit(c)) {
+                    i += std::isdigit(c) ? c - '0' : std::toupper(c) - 'A' + 10;
+                    result += static_cast<char>(i);
+                }
+                else {
+                    result += '%';
+                    result += c;
+                }
+            }
+            else {
+                result += '%';
+                result += c;
+            }
+        }
+        else {
+            result += c;
+        }
+    }
+
+    return result;
+}
+
+/*    CROW_ROUTE(app, "/status")
         ([](const crow::request& req) {
         auto sessionID = getSessionID(req);
         if (sessions.find(sessionID) == sessions.end()) {
@@ -191,72 +378,4 @@ int main() {
         cart.rpy.rz = toRadians(0);
         sessions[sessionID]->linear_move(cart, ABS, FALSE, 200, 100, 1, NULL);
         return crow::response(200);
-            });
-
-    CROW_ROUTE(app, "/digital_output_status")
-        ([](const crow::request& req) {
-        auto sessionID = getSessionID(req);
-        if (sessions.find(sessionID) == sessions.end()) {
-            return crow::response(400, "Session not found");
-        }
-
-        sessions[sessionID]->printDigitalOutputStatus(0, 1);
-        return crow::response(200, "Digital Output Status Printed");
-            });
-
-    CROW_ROUTE(app, "/use_digital_output1")
-        ([](const crow::request& req) {
-        auto sessionID = getSessionID(req);
-        if (sessions.find(sessionID) == sessions.end()) {
-            return crow::response(400, "Session not found");
-        }
-
-        sessions[sessionID]->useDigitalOutput(0);
-        return crow::response(200, "Digital Output 1 Used");
-            });
-
-    CROW_ROUTE(app, "/use_digital_output2")
-        ([](const crow::request& req) {
-        auto sessionID = getSessionID(req);
-        if (sessions.find(sessionID) == sessions.end()) {
-            return crow::response(400, "Session not found");
-        }
-
-        sessions[sessionID]->useDigitalOutput(1);
-        return crow::response(200, "Digital Output 2 Used");
-            });
-
-    CROW_ROUTE(app, "/save_robot_status")
-        ([](const crow::request& req) {
-        auto sessionID = getSessionID(req);
-        if (sessions.find(sessionID) == sessions.end()) {
-            return crow::response(400, "Session not found");
-        }
-
-        errno_t result = sessions[sessionID]->save_robot_status_and_digital_output(0, 1);
-        if (result == ERR_SUCC) {
-            return crow::response(200, "Robot status saved successfully");
-        }
-        else {
-            return crow::response(500, "Failed to save robot status");
-        }
-            });
-
-    CROW_ROUTE(app, "/run_saved_movements/<int>")
-        ([](const crow::request& req, int times) {
-        auto sessionID = getSessionID(req);
-        if (sessions.find(sessionID) == sessions.end()) {
-            return crow::response(400, "Session not found");
-        }
-
-        errno_t result = sessions[sessionID]->run_saved_movements(times, ABS, TRUE, 0.9); // Example parameters
-        if (result == ERR_SUCC) {
-            return crow::response(200, "Saved movements executed successfully");
-        }
-        else {
-            return crow::response(500, "Failed to execute saved movements");
-        }
-            });
-
-    app.port(8080).multithreaded().run();
-}
+            });*/

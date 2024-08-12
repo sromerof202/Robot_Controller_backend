@@ -8,6 +8,9 @@
 #include <windows.h>
 #include <thread>
 #include <chrono>
+#include "json.hpp"
+
+using json = nlohmann::json;
 
 constexpr double PI = 3.1415926;
 using namespace std;
@@ -16,11 +19,16 @@ APIPionoid::APIPionoid(const string& ipaddr) : ipaddr(ipaddr) {}
 
 struct RobotSession {
 	JointValue joint_position;
+	CartesianTran cartesian_position;
+	Rpy rpy_position;
 	BOOL digital_output1;
 	BOOL digital_output2;
+	std::string name; // add name
 };
 
 vector<RobotSession> sessionStorage;
+
+int sessionCounter = 1;
 
 double toRadians(double degrees) {
 	return degrees * PI / 180.0;
@@ -160,21 +168,57 @@ void APIPionoid::useDigitalOutput(int outputIndex) {
 	robotController.power_on();
 	robotController.enable_robot();
 
-	// Turn on DO
-	err = robotController.set_digital_output(IO_TOOL, outputIndex, TRUE);
-	std::cout << "Error code for setting digital output 0: " << err << std::endl;
+	BOOL currentState;
+	err = robotController.get_digital_output(IO_CABINET, outputIndex, &currentState);
+	if (err != ERR_SUCC) {
+		std::cout << "Error getting digital output state: " << err << std::endl;
+		login_out();
+		return;
+	}
 
-	// Wait for 2 seconds
-	std::this_thread::sleep_for(std::chrono::seconds(2));
+	BOOL newState = !currentState;
+	err = robotController.set_digital_output(IO_CABINET, outputIndex, newState);
+	if (err != ERR_SUCC) {
+		std::cout << "Error setting digital output: " << err << std::endl;
+	}
+	else {
+		std::cout << "Digital output " << outputIndex << " set to " << (newState ? "ON" : "OFF") << std::endl;
+	}
 
-	// Turn off DO
-	err = robotController.set_digital_output(IO_TOOL, outputIndex, FALSE);
+	login_out();
+}
+
+void APIPionoid::useDigitalInput(int inputIndex) {
+	errno_t err = login_in();
+	if (err != ERR_SUCC) {
+		return;
+	}
+
+	robotController.power_on();
+	robotController.enable_robot();
+
+	BOOL currentState;
+	err = robotController.get_digital_input(IO_CABINET, inputIndex, &currentState);
+	if (err != ERR_SUCC) {
+		std::cout << "Error getting digital Input state: " << err << std::endl;
+		login_out();
+		return;
+	}
+
+	BOOL newState = !currentState;
+	err = robotController.set_digital_output(IO_CABINET, inputIndex, newState);
+	if (err != ERR_SUCC) {
+		std::cout << "Error setting digital Input: " << err << std::endl;
+	}
+	else {
+		std::cout << "Digital Input " << inputIndex << " set to " << (newState ? "ON" : "OFF") << std::endl;
+	}
 
 	login_out();
 }
 
 
-errno_t APIPionoid::save_robot_status_and_digital_output(int digitalOutputIndex1, int digitalOutputIndex2) {
+errno_t APIPionoid::save_robot_status_and_digital_output(int digitalOutputIndex1, int digitalOutputIndex2, crow::json::wvalue& responseJson) {
 	errno_t ret = login_in();
 	if (ret != ERR_SUCC) {
 		return ret;
@@ -187,21 +231,132 @@ errno_t APIPionoid::save_robot_status_and_digital_output(int digitalOutputIndex1
 	BOOL digitalOutput1, digitalOutput2;
 
 	robotController.get_robot_status(&robstatus);
-	robotController.get_digital_output(IO_TOOL, digitalOutputIndex1, &digitalOutput1);
-	robotController.get_digital_output(IO_TOOL, digitalOutputIndex2, &digitalOutput2);
+	robotController.get_digital_output(IO_CABINET, digitalOutputIndex1, &digitalOutput1);
+	robotController.get_digital_output(IO_CABINET, digitalOutputIndex2, &digitalOutput2);
 
 	RobotSession session;
+
+	// CartesianTran
+	session.cartesian_position.x = robstatus.cartesiantran_position[0];
+	session.cartesian_position.y = robstatus.cartesiantran_position[1];
+	session.cartesian_position.z = robstatus.cartesiantran_position[2];
+
+	// Rpy (rad to deg)
+	session.rpy_position.rx = robstatus.cartesiantran_position[3] * 180 / PI;
+	session.rpy_position.ry = robstatus.cartesiantran_position[4] * 180 / PI;
+	session.rpy_position.rz = robstatus.cartesiantran_position[5] * 180 / PI;
+
+
 	for (int i = 0; i < 6; ++i) {
 		session.joint_position.jVal[i] = robstatus.joint_position[i];
 	}
 	session.digital_output1 = digitalOutput1;
 	session.digital_output2 = digitalOutput2;
 
+	// Create a name for the new session
+	/*std::string sessionName = "Move " + std::to_string(sessionStorage.size() + 1);*/
+	std::string sessionName = "Move " + std::to_string(sessionCounter);
+	session.name = sessionName;
+
+	// Bundle data into JSON
+	responseJson = crow::json::wvalue();
+	responseJson["name"] = session.name;
+	responseJson["x"] = session.cartesian_position.x;
+	responseJson["y"] = session.cartesian_position.y;
+	responseJson["z"] = session.cartesian_position.z;
+	responseJson["rx"] = session.rpy_position.rx;
+	responseJson["ry"] = session.rpy_position.ry;
+	responseJson["rz"] = session.rpy_position.rz;
+
 	sessionStorage.push_back(session);
+
+	sessionCounter++;
 
 	login_out();
 	return ERR_SUCC;
 }
+
+errno_t APIPionoid::delete_robot_status(const std::string& nameToDelete) {
+	errno_t ret = login_in();
+	if (ret != ERR_SUCC) {
+		return ret;
+	}
+
+	std::cout << "Deleting session with name: " << nameToDelete << std::endl;
+
+	auto it = std::remove_if(sessionStorage.begin(), sessionStorage.end(),
+		[&nameToDelete](const RobotSession& session) {
+			return session.name == nameToDelete;
+		});
+	sessionStorage.erase(it, sessionStorage.end());
+
+	std::cout << "Remaining sessions (" << sessionStorage.size() << "):" << std::endl;
+	for (const auto& session : sessionStorage) {
+		std::cout << "Name: " << session.name << std::endl;
+		std::cout << "Cartesian Position: x=" << session.cartesian_position.x
+			<< ", y=" << session.cartesian_position.y
+			<< ", z=" << session.cartesian_position.z << std::endl;
+		std::cout << "Rpy Position: rx=" << session.rpy_position.rx
+			<< ", ry=" << session.rpy_position.ry
+			<< ", rz=" << session.rpy_position.rz << std::endl;
+	}
+
+	login_out();
+	return ERR_SUCC;
+}
+
+errno_t APIPionoid::update_robot_status(const std::string& originalName, const json& updatedSessionJson) {
+	errno_t ret = login_in();
+	if (ret != ERR_SUCC) {
+		return ret;
+	}
+
+	// Convert JSON data to RobotSession object
+	RobotSession updatedSession;
+	try {
+		updatedSession.name = updatedSessionJson.at("name").get<std::string>();
+		updatedSession.cartesian_position.x = updatedSessionJson.at("x").get<double>();
+		updatedSession.cartesian_position.y = updatedSessionJson.at("y").get<double>();
+		updatedSession.cartesian_position.z = updatedSessionJson.at("z").get<double>();
+		updatedSession.rpy_position.rx = updatedSessionJson.at("rx").get<double>();
+		updatedSession.rpy_position.ry = updatedSessionJson.at("ry").get<double>();
+		updatedSession.rpy_position.rz = updatedSessionJson.at("rz").get<double>();
+	}
+	catch (const std::exception& e) {
+		std::cerr << "Error parsing JSON: " << e.what() << std::endl;
+		return ERR_SUCC;
+	}
+
+	// Find data to modify in an existing session
+	auto it = std::find_if(sessionStorage.begin(), sessionStorage.end(),
+		[&originalName](const RobotSession& session) {
+			return session.name == originalName;
+		});
+
+	if (it != sessionStorage.end()) {
+		// Update existing session data
+		*it = updatedSession;
+	}
+	else {
+		// If there is no session, add a new session (if necessary)
+		sessionStorage.push_back(updatedSession);
+	}
+
+	std::cout << "Updated sessions (" << sessionStorage.size() << "):" << std::endl;
+	for (const auto& session : sessionStorage) {
+		std::cout << "Name: " << session.name << std::endl;
+		std::cout << "Cartesian Position: x=" << session.cartesian_position.x
+			<< ", y=" << session.cartesian_position.y
+			<< ", z=" << session.cartesian_position.z << std::endl;
+		std::cout << "Rpy Position: rx=" << session.rpy_position.rx
+			<< ", ry=" << session.rpy_position.ry
+			<< ", rz=" << session.rpy_position.rz << std::endl;
+	}
+
+	login_out();
+	return ERR_SUCC;
+}
+
 
 errno_t APIPionoid::run_saved_movements(int repeatCount, MoveMode move_mode, BOOL is_block, double speed) {
 	errno_t ret;
@@ -278,7 +433,7 @@ string generateSessionID() {
 }
 
 void setSessionCookie(crow::response& res, const string& sessionID) {
-	res.add_header("Set-Cookie", "session_id=" + sessionID + "; Path=/; HttpOnly;SameSite=None; Secure");
+	res.add_header("Set-Cookie", "session_id=" + sessionID + "; Path=/; HttpOnly, SameSite=none; Secure");
 }
 
 string getSessionID(const crow::request& req) {

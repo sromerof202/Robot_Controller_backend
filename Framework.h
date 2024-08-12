@@ -6,6 +6,10 @@
 #include "crow_all.h" // Crow web framework
 #include <JAKAZuRobot.h> 
 
+#include "json.hpp"
+
+using json = nlohmann::json;
+
 using namespace std;
 
 // Class to encapsulate API interactions with the Pionoid robot
@@ -30,12 +34,15 @@ public:
     
     void printDigitalOutputStatus(int digitalOutputIndex1, int digitalOutputIndex2); // Print digital output status
     void useDigitalOutput(int outputIndex); // Use a specific digital output
+    void useDigitalInput(int inputIndex);
 
     int get_robot_status();
 
     //New Methods
-    errno_t save_robot_status_and_digital_output(int digitalOutputIndex1, int digitalOutputIndex2); // Save robot status and digital output
+    errno_t save_robot_status_and_digital_output(int digitalOutputIndex1, int digitalOutputIndex2, crow::json::wvalue& responseJson); // Save robot status and digital output
     errno_t run_saved_movements(int repeatCount, MoveMode move_mode, BOOL is_block, double speed); // Run saved movements
+    errno_t delete_robot_status(const std::string& nameToDelete);
+    errno_t update_robot_status(const std::string& originalName, const json& updatedSessionJson);
 
     
 private:
