@@ -361,3 +361,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# aws keys
+crow_key_pair.pem
+
+# C++SDK_Framework.vcxproj
+C++SDK_Framework.vcxproj

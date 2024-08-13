@@ -30,6 +30,32 @@ vector<RobotSession> sessionStorage;
 
 int sessionCounter = 1;
 
+
+
+errno_t APIPionoid::get_robot_sessions(json& responseJson) {
+	responseJson = json::array();
+
+	for (const auto& session : sessionStorage) {
+		json sessionJson;
+
+		sessionJson["name"] = session.name;
+		sessionJson["x"] = session.cartesian_position.x;
+		sessionJson["y"] = session.cartesian_position.y;
+		sessionJson["z"] = session.cartesian_position.z;
+		sessionJson["rx"] = session.rpy_position.rx;
+		sessionJson["ry"] = session.rpy_position.ry;
+		sessionJson["rz"] = session.rpy_position.rz;
+		sessionJson["digital_output1"] = session.digital_output1;
+		sessionJson["digital_output2"] = session.digital_output2;
+
+		responseJson.push_back(sessionJson);
+	}
+
+	return ERR_SUCC;
+}
+
+
+
 double toRadians(double degrees) {
 	return degrees * PI / 180.0;
 }
@@ -372,8 +398,9 @@ errno_t APIPionoid::run_saved_movements(int repeatCount, MoveMode move_mode, BOO
 			ret = robotController.joint_move(&session.joint_position, move_mode, is_block, speed);
 			if (ret != ERR_SUCC) return ret;
 
-			robotController.set_digital_output(IO_TOOL, 0, session.digital_output1);
-			robotController.set_digital_output(IO_TOOL, 1, session.digital_output2);
+			robotController.set_digital_output(IO_CABINET, 0, session.digital_output1);
+			Sleep(2000);
+			robotController.set_digital_output(IO_CABINET, 1, session.digital_output2);
 		}
 	}
 
@@ -433,7 +460,7 @@ string generateSessionID() {
 }
 
 void setSessionCookie(crow::response& res, const string& sessionID) {
-	res.add_header("Set-Cookie", "session_id=" + sessionID + "; Path=/; HttpOnly, SameSite=none; Secure");
+	res.add_header("Set-Cookie", "session_id=" + sessionID + "; Path=/; SameSite=Lax; Secure");
 }
 
 string getSessionID(const crow::request& req) {

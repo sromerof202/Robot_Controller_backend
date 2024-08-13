@@ -43,6 +43,7 @@ public:
     errno_t run_saved_movements(int repeatCount, MoveMode move_mode, BOOL is_block, double speed); // Run saved movements
     errno_t delete_robot_status(const std::string& nameToDelete);
     errno_t update_robot_status(const std::string& originalName, const json& updatedSessionJson);
+    errno_t get_robot_sessions(json& responseJson);
 
     
 private:

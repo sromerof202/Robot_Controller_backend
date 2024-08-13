@@ -276,9 +276,6 @@ int main() {
         }
             });
 
-
-
-
     CROW_ROUTE(app, "/run_saved_movements/<int>")
         ([](const crow::request& req, int times) {
         auto sessionID = getSessionID(req);
@@ -289,6 +286,24 @@ int main() {
         errno_t result = sessions[sessionID]->run_saved_movements(times, ABS, TRUE, 0.9); // Example parameters
         if (result == ERR_SUCC) {
             return crow::response(200, "Saved movements executed successfully");
+        }
+        else {
+            return crow::response(500, "Failed to execute saved movements");
+        }
+            });
+
+    CROW_ROUTE(app, "/get_robot_sessions")
+        ([](const crow::request& req) {
+        auto sessionID = getSessionID(req);
+        if (sessions.find(sessionID) == sessions.end()) {
+            return crow::response(400, "Session not found");
+        }
+
+        json responseJson;
+        errno_t result = sessions[sessionID]->get_robot_sessions(responseJson);
+
+        if (result == ERR_SUCC) {
+            return crow::response(responseJson.dump());
         }
         else {
             return crow::response(500, "Failed to execute saved movements");
